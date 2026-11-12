@@ -253,5 +253,100 @@ const submitHostelApplication = async (req, res) => {
   }
 }
 
+// get application
 
-module.exports = { getStudentProfile, getAvailableHostels, submitHostelApplication }
+const getStudentApplications = async (req, res) => {
+  try {
+    const sql = `
+      SELECT
+        a.id AS application_id,
+        a.reference_code,
+        a.status,
+        a.requested_at,
+        a.actioned_at,
+        a.action_reason,
+
+        h.name AS preferred_hostel,
+
+        r.room_number,
+        r.capacity AS room_capacity
+
+      FROM allocations a
+
+      LEFT JOIN hostels h
+        ON a.preferred_hostel_id = h.id
+
+      LEFT JOIN rooms r
+        ON a.room_id = r.id
+
+      WHERE a.student_id = ?
+
+      ORDER BY a.requested_at DESC
+    `
+
+    const [applications] = await db.query(sql, [req.user.id])
+
+    return res.status(200).json({
+      message: 'Student applications retrieved successfully',
+      total: applications.length,
+      applications
+    })
+
+  } catch (err) {
+    console.error(err)
+
+    return res.status(500).json({
+      message: 'Unable to retrieve student applications'
+    })
+  }
+}
+
+// get student allocation
+
+const getStudentAllocation = async (req, res) => {
+  try {
+    const studentId = req.user.id
+
+    const [allocations] = await db.query(
+      `SELECT
+        a.id AS application_id,
+        a.reference_code,
+        a.status,
+        a.actioned_at AS allocated_at,
+        h.id AS hostel_id,
+        h.name AS hostel_name,
+        r.id AS room_id,
+        r.room_number,
+        r.capacity
+       FROM allocations a
+       JOIN hostels h ON a.preferred_hostel_id = h.id
+       JOIN rooms r ON a.room_id = r.id
+       WHERE a.student_id = ?
+       AND a.status = 'Granted'
+       ORDER BY a.actioned_at DESC
+       LIMIT 1`,
+      [studentId]
+    )
+
+    if (allocations.length === 0) {
+      return res.status(404).json({
+        message: 'You do not have an active hostel allocation'
+      })
+    }
+
+    return res.status(200).json({
+      message: 'Allocation details retrieved successfully',
+      allocation: allocations[0]
+    })
+
+  } catch (err) {
+    console.error(err)
+
+    return res.status(500).json({
+      message: 'Unable to retrieve allocation details'
+    })
+  }
+}
+
+
+module.exports = { getStudentProfile, getAvailableHostels, submitHostelApplication, getStudentApplications, getStudentAllocation }

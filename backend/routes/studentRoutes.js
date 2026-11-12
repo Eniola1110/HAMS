@@ -5,9 +5,12 @@ const router = express.Router()
 const verifyToken = require('../middleware/authMiddleware')
 const authorizeRoles = require('../middleware/roleMiddleware')
 
-const { getStudentProfile, getAvailableHostels, submitHostelApplication } = require('../controllers/studentController')
+const { getStudentProfile, getAvailableHostels, submitHostelApplication, getStudentApplications, getStudentAllocation } = require('../controllers/studentController')
 
 router.get('/profile', verifyToken, authorizeRoles('student'), getStudentProfile)
 router.get('/hostels', verifyToken, authorizeRoles('student'), getAvailableHostels)
 router.post('/applications', verifyToken, authorizeRoles('student'), submitHostelApplication)
+router.get('/applications', verifyToken, authorizeRoles('student'), getStudentApplications)
+router.get('/allocation', verifyToken, authorizeRoles('student'), getStudentAllocation)
+
 module.exports = router
